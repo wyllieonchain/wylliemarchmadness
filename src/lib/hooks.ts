@@ -197,7 +197,6 @@ export function useLeaderboard() {
 
     if (!picks || !profiles || !games) { setLoading(false); return; }
 
-    const profileMap = new Map((profiles as Profile[]).map(p => [p.id, p]));
 
     // Group picks by user
     const userPicks = new Map<string, Array<{ pick: Pick; team: Team }>>();

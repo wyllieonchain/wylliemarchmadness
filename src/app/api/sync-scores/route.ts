@@ -8,10 +8,6 @@ const supabase = createClient(
 
 const TOURNAMENT_ID = 'a0000000-0000-0000-0000-000000000001';
 
-function todayDateStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-}
 
 interface EspnCompetitor {
   team: { id: string };
