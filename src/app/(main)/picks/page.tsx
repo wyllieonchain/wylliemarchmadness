@@ -473,43 +473,50 @@ function PicksSummary({
                     )}
                   </div>
                 </button>
-                {isExpanded && nextGame && (
-                  <div className="ml-8 mr-3 mb-2 mt-1 px-4 py-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-                    <p className="text-xs text-[#9b8ab8] mb-1">Next Game — {ROUND_NAMES[nextGame.game.round] || `Round ${nextGame.game.round}`}</p>
-                    <div className="flex items-center gap-2">
-                      {nextGame.opponent ? (
-                        <>
-                          <span className="text-sm text-white">vs</span>
-                          {nextGame.opponent.logo_url && (
-                            <img src={nextGame.opponent.logo_url} alt="" className="w-4 h-4 object-contain" />
+                <div
+                  className="grid transition-all duration-300 ease-in-out"
+                  style={{ gridTemplateRows: isExpanded && nextGame ? '1fr' : '0fr' }}
+                >
+                  <div className="overflow-hidden">
+                    <div className="px-3 pb-2 pt-1">
+                      <div className="px-4 py-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                        <p className="text-xs text-[#9b8ab8] mb-1">Next Game — {nextGame ? (ROUND_NAMES[nextGame.game.round] || `Round ${nextGame.game.round}`) : ''}</p>
+                        <div className="flex items-center gap-2">
+                          {nextGame?.opponent ? (
+                            <>
+                              <span className="text-sm text-white">vs</span>
+                              {nextGame.opponent.logo_url && (
+                                <img src={nextGame.opponent.logo_url} alt="" className="w-4 h-4 object-contain" />
+                              )}
+                              <span className="text-sm text-white">{nextGame.opponent.name}</span>
+                              <span className="text-xs text-[#6b5a8a]">({nextGame.opponent.seed})</span>
+                            </>
+                          ) : (
+                            <span className="text-sm text-[#6b5a8a] italic">vs TBD</span>
                           )}
-                          <span className="text-sm text-white">{nextGame.opponent.name}</span>
-                          <span className="text-xs text-[#6b5a8a]">({nextGame.opponent.seed})</span>
-                        </>
-                      ) : (
-                        <span className="text-sm text-[#6b5a8a] italic">vs TBD</span>
-                      )}
-                    </div>
-                    {nextGame.game.start_time && (
-                      <p className="text-xs text-[#6b5a8a] mt-1.5">
-                        {new Date(nextGame.game.start_time).toLocaleString('en-US', {
-                          weekday: 'short',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          timeZoneName: 'short',
-                        })}
-                      </p>
-                    )}
-                    {nextGame.game.status === 'live' && (
-                      <div className="flex items-center gap-1.5 mt-1.5">
-                        <span className="w-2 h-2 rounded-full bg-green animate-pulse" />
-                        <span className="text-xs text-green font-medium">LIVE</span>
+                        </div>
+                        {nextGame?.game.start_time && (
+                          <p className="text-xs text-[#6b5a8a] mt-1.5">
+                            {new Date(nextGame.game.start_time).toLocaleString('en-US', {
+                              weekday: 'short',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              timeZoneName: 'short',
+                            })}
+                          </p>
+                        )}
+                        {nextGame?.game.status === 'live' && (
+                          <div className="flex items-center gap-1.5 mt-1.5">
+                            <span className="w-2 h-2 rounded-full bg-green animate-pulse" />
+                            <span className="text-xs text-green font-medium">LIVE</span>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
