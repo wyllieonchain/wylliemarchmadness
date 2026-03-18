@@ -3,25 +3,90 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #1a0a2e;
+  --foreground: #f5f0ff;
+  --card: rgba(36, 20, 66, 0.55);
+  --card-solid: #241444;
+  --card-hover: rgba(50, 30, 80, 0.6);
+  --field: rgba(55, 35, 90, 0.35);
+  --border: rgba(120, 80, 200, 0.12);
+  --border-light: rgba(120, 80, 200, 0.08);
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-light: #a78bfa;
+  --accent-glow: rgba(124, 58, 237, 0.15);
+  --green: #34d399;
+  --red: #f87171;
+  --gold: #fbbf24;
+  --muted: #9b8ab8;
+  --muted-light: #b8a8d4;
+  --orange: #f97316;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* Center glow effect */
+.page-glow {
+  position: fixed;
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 600px;
+  background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.28) 0%, rgba(124, 58, 237, 0.10) 40%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Corner gradient glows */
+.corner-glow-left {
+  position: fixed;
+  bottom: -120px;
+  left: -120px;
+  width: 550px;
+  height: 550px;
+  background: radial-gradient(circle at center, rgba(124, 58, 237, 0.40) 0%, rgba(99, 40, 200, 0.18) 35%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.corner-glow-right {
+  position: fixed;
+  bottom: -120px;
+  right: -120px;
+  width: 550px;
+  height: 550px;
+  background: radial-gradient(circle at center, rgba(168, 85, 247, 0.35) 0%, rgba(124, 58, 237, 0.14) 35%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Glass card effect */
+.glass-card {
+  background: var(--card);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.glass-card-sm {
+  background: var(--field);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+}
+
+/* Hide scrollbar for bracket picker horizontal scroll */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
