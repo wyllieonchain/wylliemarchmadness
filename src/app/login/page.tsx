@@ -9,10 +9,12 @@ export default function LoginPage() {
   const supabase = createClient();
 
   const [email, setEmail] = useState("");
-  const [codeSent, setCodeSent] = useState(false);
+  const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [authenticating, setAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (window.location.hash.includes('access_token')) {
@@ -26,14 +28,34 @@ export default function LoginPage() {
     return () => subscription.unsubscribe();
   }, [supabase, router]);
 
-  async function handleSendCode() {
+  async function handleSubmit() {
     setLoading(true);
     setError(null);
-    const { error: otpError } = await supabase.auth.signInWithOtp({ email });
-    if (otpError) {
-      setError(otpError.message);
+    setMessage(null);
+
+    if (isSignUp) {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      if (signUpError) {
+        setError(signUpError.message);
+      } else {
+        setMessage("Account created! You're being signed in...");
+      }
     } else {
-      setCodeSent(true);
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (signInError) {
+        // If they have no password (old magic link user), suggest signing up
+        if (signInError.message.includes('Invalid login credentials')) {
+          setError("Invalid email or password. If you signed up with a magic link before, click 'Create account' and use the same email to set a password.");
+        } else {
+          setError(signInError.message);
+        }
+      }
     }
     setLoading(false);
   }
@@ -51,7 +73,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="glass-card p-7 space-y-6">
+        <div className="glass-card p-7 space-y-5">
           {authenticating && (
             <div className="text-center py-8">
               <div className="animate-spin w-8 h-8 border-2 border-[#7c3aed] border-t-transparent rounded-full mx-auto mb-4" />
@@ -69,44 +91,48 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && email && !codeSent) handleSendCode(); }}
               placeholder="you@example.com"
-              disabled={codeSent}
-              className="w-full glass-card-sm px-4 py-3.5 text-white placeholder-[#6b5a8a] text-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/30 disabled:opacity-50 transition-all"
+              className="w-full glass-card-sm px-4 py-3.5 text-white placeholder-[#6b5a8a] text-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/30 transition-all"
             />
           </div>
 
-          {codeSent && (
-            <div className="text-center py-4 glass-card-sm">
-              <p className="text-sm text-[#a78bfa] font-medium mb-1">Check your email</p>
-              <p className="text-xs text-[#9b8ab8]">
-                Magic link sent to <span className="text-white/90">{email}</span>
-              </p>
-            </div>
-          )}
+          <div>
+            <label htmlFor="password" className="block text-xs font-medium text-[#9b8ab8] mb-2 uppercase tracking-wider">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && email && password) handleSubmit(); }}
+              placeholder="••••••••"
+              className="w-full glass-card-sm px-4 py-3.5 text-white placeholder-[#6b5a8a] text-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/30 transition-all"
+            />
+          </div>
 
           {error && (
             <p className="text-sm text-red bg-red/10 rounded-xl px-4 py-3 border border-red/20">{error}</p>
           )}
 
-          {!codeSent && (
-            <button
-              onClick={handleSendCode}
-              disabled={loading || !email}
-              className="w-full rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-semibold py-3.5 text-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              {loading ? "Sending..." : "Send Magic Link"}
-            </button>
+          {message && (
+            <p className="text-sm text-green bg-green/10 rounded-xl px-4 py-3 border border-green/20">{message}</p>
           )}
 
-          {codeSent && (
-            <button
-              onClick={() => { setCodeSent(false); setError(null); }}
-              className="w-full text-center text-xs text-[#9b8ab8] hover:text-white transition-colors"
-            >
-              Use a different email
-            </button>
-          )}
+          <button
+            onClick={handleSubmit}
+            disabled={loading || !email || !password}
+            className="w-full rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-semibold py-3.5 text-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            {loading ? "..." : isSignUp ? "Create Account" : "Sign In"}
+          </button>
+
+          <button
+            onClick={() => { setIsSignUp(!isSignUp); setError(null); setMessage(null); }}
+            className="w-full text-center text-xs text-[#9b8ab8] hover:text-white transition-colors"
+          >
+            {isSignUp ? "Already have an account? Sign in" : "New here? Create account"}
+          </button>
           </>}
         </div>
       </div>
