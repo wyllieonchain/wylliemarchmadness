@@ -61,9 +61,10 @@ export async function updateSession(request: NextRequest) {
       .single();
 
     if (!profile) {
+      const email = user.email || user.user_metadata?.email || "Unknown";
       await supabase.from("profiles").upsert({
         id: user.id,
-        display_name: user.email ?? "Unknown",
+        display_name: email,
       });
     }
   }
