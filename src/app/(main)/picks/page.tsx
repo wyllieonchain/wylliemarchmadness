@@ -259,7 +259,7 @@ export default function PicksPage() {
 
       {/* Summary view when submitted */}
       {submitted && !editing ? (
-        <PicksSummary localPicks={localPicks} teamMap={teamMap} savedPicks={savedPicks} />
+        <PicksSummary localPicks={localPicks} teamMap={teamMap} savedPicks={savedPicks} games={games} />
       ) : (
         <>
           {/* Region Tabs */}
@@ -326,11 +326,30 @@ function PicksSummary({
   localPicks,
   teamMap,
   savedPicks,
+  games,
 }: {
   localPicks: Map<number, string>;
   teamMap: Map<string, Team>;
   savedPicks: Pick[];
+  games: Game[];
 }) {
+  const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+
+  // Find next game for a team (upcoming or live, not final)
+  const getNextGame = (teamId: string): { game: Game; opponent: Team | null } | null => {
+    const upcoming = games
+      .filter(g =>
+        g.status !== 'final' &&
+        (g.team_a_id === teamId || g.team_b_id === teamId)
+      )
+      .sort((a, b) => a.game_number - b.game_number);
+
+    if (upcoming.length === 0) return null;
+    const game = upcoming[0];
+    const opponentId = game.team_a_id === teamId ? game.team_b_id : game.team_a_id;
+    const opponent = opponentId ? teamMap.get(opponentId) ?? null : null;
+    return { game, opponent };
+  };
   const finalFourGameNumbers = [15, 30, 45, 60];
   const finalFourTeams = finalFourGameNumbers
     .map(gn => {
@@ -424,31 +443,73 @@ function PicksSummary({
         <div className="space-y-1">
           {rankedTeams.slice(0, 12).map((entry, i) => {
             const eliminated = entry.team.eliminated;
+            const isExpanded = expandedTeam === entry.team.id;
+            const nextGame = !eliminated ? getNextGame(entry.team.id) : null;
+
             return (
-              <div
-                key={entry.team.id}
-                className={`flex items-center justify-between py-2.5 px-3 rounded-lg transition-colors ${
-                  eliminated ? 'opacity-50' : 'hover:bg-white/[0.02]'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="w-5 text-center text-xs text-[#6b5a8a] font-mono">{i + 1}</span>
-                  {entry.team.logo_url && (
-                    <img src={entry.team.logo_url} alt="" className={`w-5 h-5 object-contain ${eliminated ? 'grayscale' : ''}`} />
-                  )}
-                  <span className={`text-sm ${eliminated ? 'line-through text-[#6b5a8a]' : ''}`}>{entry.team.name}</span>
-                  <span className="text-xs text-[#6b5a8a]">({entry.team.seed})</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  {eliminated ? (
-                    <span className="text-sm font-bold font-mono text-green">{entry.earnedPts} pts</span>
-                  ) : (
-                    <>
-                      <span className="text-xs text-[#6b5a8a]">{entry.count} {entry.count === 1 ? 'win' : 'wins'}</span>
-                      <span className="text-sm font-bold font-mono text-[#a78bfa]">{entry.totalPts} pts</span>
-                    </>
-                  )}
-                </div>
+              <div key={entry.team.id}>
+                <button
+                  onClick={() => !eliminated && setExpandedTeam(isExpanded ? null : entry.team.id)}
+                  className={`w-full flex items-center justify-between py-2.5 px-3 rounded-lg transition-colors text-left ${
+                    eliminated ? 'opacity-50 cursor-default' : 'hover:bg-white/[0.04] cursor-pointer'
+                  } ${isExpanded ? 'bg-white/[0.04]' : ''}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-5 text-center text-xs text-[#6b5a8a] font-mono">{i + 1}</span>
+                    {entry.team.logo_url && (
+                      <img src={entry.team.logo_url} alt="" className={`w-5 h-5 object-contain ${eliminated ? 'grayscale' : ''}`} />
+                    )}
+                    <span className={`text-sm ${eliminated ? 'line-through text-[#6b5a8a]' : ''}`}>{entry.team.name}</span>
+                    <span className="text-xs text-[#6b5a8a]">({entry.team.seed})</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {eliminated ? (
+                      <span className="text-sm font-bold font-mono text-green">{entry.earnedPts} pts</span>
+                    ) : (
+                      <>
+                        <span className="text-xs text-[#6b5a8a]">{entry.count} {entry.count === 1 ? 'win' : 'wins'}</span>
+                        <span className="text-sm font-bold font-mono text-[#a78bfa]">{entry.totalPts} pts</span>
+                      </>
+                    )}
+                  </div>
+                </button>
+                {isExpanded && nextGame && (
+                  <div className="ml-8 mr-3 mb-2 mt-1 px-4 py-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                    <p className="text-xs text-[#9b8ab8] mb-1">Next Game — {ROUND_NAMES[nextGame.game.round] || `Round ${nextGame.game.round}`}</p>
+                    <div className="flex items-center gap-2">
+                      {nextGame.opponent ? (
+                        <>
+                          <span className="text-sm text-white">vs</span>
+                          {nextGame.opponent.logo_url && (
+                            <img src={nextGame.opponent.logo_url} alt="" className="w-4 h-4 object-contain" />
+                          )}
+                          <span className="text-sm text-white">{nextGame.opponent.name}</span>
+                          <span className="text-xs text-[#6b5a8a]">({nextGame.opponent.seed})</span>
+                        </>
+                      ) : (
+                        <span className="text-sm text-[#6b5a8a] italic">vs TBD</span>
+                      )}
+                    </div>
+                    {nextGame.game.start_time && (
+                      <p className="text-xs text-[#6b5a8a] mt-1.5">
+                        {new Date(nextGame.game.start_time).toLocaleString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          timeZoneName: 'short',
+                        })}
+                      </p>
+                    )}
+                    {nextGame.game.status === 'live' && (
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <span className="w-2 h-2 rounded-full bg-green animate-pulse" />
+                        <span className="text-xs text-green font-medium">LIVE</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
