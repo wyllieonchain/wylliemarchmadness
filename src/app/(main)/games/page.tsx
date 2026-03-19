@@ -56,9 +56,18 @@ export default function GamesPage() {
     return a.game_number - b.game_number;
   };
 
+  const now = Date.now();
+  const TEN_MINUTES = 10 * 60 * 1000;
+
+  const recentlyFinished = games
+    .filter(g => g.status === 'final' && g.finished_at && (now - new Date(g.finished_at).getTime()) < TEN_MINUTES)
+    .sort((a, b) => new Date(b.finished_at!).getTime() - new Date(a.finished_at!).getTime());
+
+  const recentIds = new Set(recentlyFinished.map(g => g.id));
+
   const liveGames = games.filter(g => g.status === 'live').sort(sortByTime);
   const upcomingGames = games.filter(g => g.status === 'upcoming').sort(sortByTime);
-  const completedGames = games.filter(g => g.status === 'final').sort((a, b) => sortByTime(b, a));
+  const completedGames = games.filter(g => g.status === 'final' && !recentIds.has(g.id)).sort((a, b) => sortByTime(b, a));
 
   const loading = gamesLoading || teamsLoading || picksLoading;
 
@@ -77,6 +86,18 @@ export default function GamesPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-10">
       <h1 className="text-2xl font-bold text-white">Games</h1>
+      {recentlyFinished.length > 0 && (
+        <GameSection
+          title="Just Finished"
+          games={recentlyFinished}
+          teamMap={teamMap}
+          picksByGame={picksByGame}
+          profiles={profiles}
+          expandedGame={expandedGame}
+          onToggle={toggleExpand}
+        />
+      )}
+
       {liveGames.length > 0 && (
         <GameSection
           title="Live Now"

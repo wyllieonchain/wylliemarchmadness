@@ -222,6 +222,7 @@ export async function GET(request: NextRequest) {
       const isNowFinal = status === 'final';
 
       if (isNowFinal && wasNotFinal) {
+        updateData.finished_at = new Date().toISOString();
         // Determine winner
         const winner = comp.competitors.find((c) => c.winner);
         let winnerId: string | null = null;
