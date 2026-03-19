@@ -67,13 +67,13 @@ export default function LeaderboardPage() {
             <span className="text-[10px] text-[#6b5a8a] font-medium uppercase tracking-wider">Player</span>
             <button
               onClick={() => setSortBy('pts')}
-              className={`text-[10px] font-medium uppercase tracking-wider text-right ${sortBy === 'pts' ? 'text-[#a78bfa]' : 'text-[#6b5a8a]'}`}
+              className={`text-[10px] font-medium uppercase tracking-wider text-right ${sortBy === 'pts' ? 'text-white' : 'text-[#6b5a8a]'}`}
             >
               Pts
             </button>
             <button
               onClick={() => setSortBy('poss')}
-              className={`text-[10px] font-medium uppercase tracking-wider text-right ${sortBy === 'poss' ? 'text-[#a78bfa]' : 'text-[#6b5a8a]'}`}
+              className={`text-[10px] font-medium uppercase tracking-wider text-right ${sortBy === 'poss' ? 'text-white' : 'text-[#6b5a8a]'}`}
             >
               Poss
             </button>
