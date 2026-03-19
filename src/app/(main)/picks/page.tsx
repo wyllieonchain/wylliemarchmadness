@@ -458,6 +458,7 @@ function PicksSummary({
                       <img src={entry.team.logo_url} alt="" className={`w-5 h-5 object-contain shrink-0 ${eliminated ? 'grayscale' : ''}`} />
                     )}
                     <span className={`text-sm truncate ${eliminated ? 'line-through text-[#6b5a8a]' : ''}`}>{entry.team.name}</span>
+                    <span className="text-xs text-[#6b5a8a] shrink-0">({entry.team.seed})</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-2">
                     {eliminated ? (
