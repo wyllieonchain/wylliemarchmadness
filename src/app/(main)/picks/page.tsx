@@ -291,7 +291,7 @@ export default function PicksPage() {
 
           {/* Navigation / Submit Button */}
           {(!submitted || editing) && !isLocked && (
-            <div className="sticky bottom-20 md:bottom-4 mt-8">
+            <div className="mt-8 mb-4">
               {canSubmit ? (
                 <button
                   onClick={handleSubmit}
@@ -452,21 +452,20 @@ function PicksSummary({
                     eliminated ? 'opacity-50 cursor-default' : 'hover:bg-white/[0.04] cursor-pointer'
                   } ${isExpanded ? 'bg-white/[0.04]' : ''}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="w-5 text-center text-xs text-[#6b5a8a] font-mono">{i + 1}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-5 shrink-0 text-center text-xs text-[#6b5a8a] font-mono">{i + 1}</span>
                     {entry.team.logo_url && (
-                      <img src={entry.team.logo_url} alt="" className={`w-5 h-5 object-contain ${eliminated ? 'grayscale' : ''}`} />
+                      <img src={entry.team.logo_url} alt="" className={`w-5 h-5 object-contain shrink-0 ${eliminated ? 'grayscale' : ''}`} />
                     )}
-                    <span className={`text-sm ${eliminated ? 'line-through text-[#6b5a8a]' : ''}`}>{entry.team.name}</span>
-                    <span className="text-xs text-[#6b5a8a]">({entry.team.seed})</span>
+                    <span className={`text-sm truncate ${eliminated ? 'line-through text-[#6b5a8a]' : ''}`}>{entry.team.name}</span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
                     {eliminated ? (
-                      <span className="text-sm font-bold font-mono text-green">{entry.earnedPts} pts</span>
+                      <span className="text-sm font-bold font-mono text-green whitespace-nowrap">{entry.earnedPts} pts</span>
                     ) : (
                       <>
-                        <span className="text-xs text-[#6b5a8a]">{entry.count} {entry.count === 1 ? 'win' : 'wins'}</span>
-                        <span className="text-sm font-bold font-mono text-[#a78bfa]">{entry.totalPts} pts</span>
+                        <span className="text-xs text-[#6b5a8a] whitespace-nowrap">{entry.count}W</span>
+                        <span className="text-sm font-bold font-mono text-[#a78bfa] whitespace-nowrap">{entry.totalPts}</span>
                       </>
                     )}
                   </div>
