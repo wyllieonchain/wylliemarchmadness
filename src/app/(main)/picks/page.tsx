@@ -227,22 +227,6 @@ export default function PicksPage() {
           </div>
         )}
 
-        {submitted && !editing && (
-          <div className="glass-card-sm px-5 py-4 mb-4 flex items-center justify-between border-green/20">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">✅</span>
-              <p className="text-green text-sm font-medium">Picks locked in!</p>
-            </div>
-            {!isLocked && (
-              <button
-                onClick={() => setEditing(true)}
-                className="text-[#a78bfa] text-sm font-medium hover:text-white transition-colors"
-              >
-                Edit
-              </button>
-            )}
-          </div>
-        )}
 
         {(!submitted || editing) && (
           <div className="flex items-center justify-between">
