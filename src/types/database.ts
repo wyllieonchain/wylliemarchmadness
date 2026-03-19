@@ -35,6 +35,7 @@ export type Game = {
   score_a: number | null;
   score_b: number | null;
   status: 'upcoming' | 'live' | 'final';
+  status_detail: string | null;
   start_time: string | null;
   espn_game_id: string | null;
   next_game_id: string | null;

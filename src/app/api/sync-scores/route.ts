@@ -20,7 +20,10 @@ interface EspnCompetition {
   id: string;
   competitors: EspnCompetitor[];
   status: {
-    type: { name: string; completed: boolean };
+    type: { name: string; completed: boolean; detail?: string; shortDetail?: string };
+    clock?: number;
+    displayClock?: string;
+    period?: number;
   };
 }
 
@@ -197,10 +200,14 @@ export async function GET(request: NextRequest) {
         status = 'upcoming';
       }
 
+      // Build status detail string for live games (e.g. "5:32 - 2nd Half")
+      const statusDetail = comp.status?.type?.shortDetail || comp.status?.type?.detail || null;
+
       const updateData: Record<string, unknown> = {
         score_a: scoreA,
         score_b: scoreB,
         status,
+        status_detail: status === 'live' ? statusDetail : null,
       };
 
       // Update start_time from ESPN if available

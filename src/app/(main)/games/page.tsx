@@ -206,7 +206,18 @@ function GameCard({
             )}
           </div>
           <div className="flex items-center gap-2">
-            {game.start_time && (
+            {isLive ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-green animate-pulse" />
+                {game.status_detail ? (
+                  <span className="text-xs text-green font-medium">{game.status_detail}</span>
+                ) : (
+                  <span className="text-xs text-green font-medium">LIVE</span>
+                )}
+              </>
+            ) : isFinal ? (
+              <span className="text-xs text-[#6b5a8a] font-medium">FINAL</span>
+            ) : game.start_time ? (
               <span className="text-xs text-[#6b5a8a]">
                 {new Date(game.start_time).toLocaleString('en-US', {
                   weekday: 'short',
@@ -216,16 +227,7 @@ function GameCard({
                   minute: '2-digit',
                 })}
               </span>
-            )}
-            {isLive && (
-              <>
-                <span className="w-2 h-2 rounded-full bg-green animate-pulse" />
-                <span className="text-xs text-green font-medium">LIVE</span>
-              </>
-            )}
-            {isFinal && (
-              <span className="text-xs text-[#6b5a8a] font-medium">FINAL</span>
-            )}
+            ) : null}
           </div>
         </div>
 
