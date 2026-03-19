@@ -12,6 +12,7 @@ export default function LeaderboardPage() {
   const { picks, loading: picksLoading } = useAllPicks();
   const { teams, loading: teamsLoading } = useTeams();
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<'pts' | 'poss'>('pts');
 
   const teamMap = new Map<string, Team>();
   teams.forEach(t => teamMap.set(t.id, t));
@@ -64,12 +65,26 @@ export default function LeaderboardPage() {
           <div className="grid grid-cols-[3rem_1fr_4.5rem_4.5rem] gap-2 px-5 py-3 border-b border-white/[0.04]">
             <span className="text-[10px] text-[#6b5a8a] font-medium uppercase tracking-wider">#</span>
             <span className="text-[10px] text-[#6b5a8a] font-medium uppercase tracking-wider">Player</span>
-            <span className="text-[10px] text-[#6b5a8a] font-medium uppercase tracking-wider text-right">Pts</span>
-            <span className="text-[10px] text-[#6b5a8a] font-medium uppercase tracking-wider text-right">Poss</span>
+            <button
+              onClick={() => setSortBy('pts')}
+              className={`text-[10px] font-medium uppercase tracking-wider text-right ${sortBy === 'pts' ? 'text-[#a78bfa]' : 'text-[#6b5a8a]'}`}
+            >
+              Pts
+            </button>
+            <button
+              onClick={() => setSortBy('poss')}
+              className={`text-[10px] font-medium uppercase tracking-wider text-right ${sortBy === 'poss' ? 'text-[#a78bfa]' : 'text-[#6b5a8a]'}`}
+            >
+              Poss
+            </button>
           </div>
 
           {/* Rows */}
-          {leaderboard.map((entry, index) => {
+          {[...leaderboard].sort((a, b) =>
+            sortBy === 'poss'
+              ? b.possible_points - a.possible_points || b.total_points - a.total_points
+              : b.total_points - a.total_points || b.possible_points - a.possible_points
+          ).map((entry, index) => {
             const isCurrentUser = user?.id === entry.user_id;
             const rank = index + 1;
             const emoji = rankEmojis[rank];
