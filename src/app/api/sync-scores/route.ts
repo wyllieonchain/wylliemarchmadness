@@ -58,9 +58,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Fetch today + next 7 days to pick up scheduled game times early
+    // Fetch yesterday + today + next 7 days (yesterday needed because Vercel runs in UTC)
     const datesToFetch: string[] = [];
-    for (let i = 0; i <= 7; i++) {
+    for (let i = -1; i <= 7; i++) {
       const d = new Date();
       d.setDate(d.getDate() + i);
       datesToFetch.push(`${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`);
