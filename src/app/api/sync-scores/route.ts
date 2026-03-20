@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import https from 'https';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-export const fetchCache = 'force-no-store';
+
+// Bypass Next.js patched fetch to avoid Data Cache
+function fetchJSON(url: string): Promise<Record<string, unknown>> {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { timeout: 10000 }, (res) => {
+      let data = '';
+      res.on('data', (chunk: string) => { data += chunk; });
+      res.on('end', () => { try { resolve(JSON.parse(data)); } catch (e) { reject(e); } });
+    });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+  });
+}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -56,11 +69,9 @@ export async function GET(request: NextRequest) {
     const events: EspnEvent[] = [];
     for (const dateStr of datesToFetch) {
       try {
-        const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?dates=${dateStr}&groups=100&limit=50&_=${Date.now()}`;
-        const res = await fetch(url, { signal: AbortSignal.timeout(10000), cache: 'no-store' });
-        if (!res.ok) continue;
-        const data = await res.json();
-        const dayEvents: EspnEvent[] = data?.events ?? [];
+        const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?dates=${dateStr}&groups=100&limit=50`;
+        const data = await fetchJSON(url);
+        const dayEvents: EspnEvent[] = (data?.events as EspnEvent[]) ?? [];
         events.push(...dayEvents);
       } catch {
         // Skip days that fail
