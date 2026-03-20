@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     for (const dateStr of datesToFetch) {
       try {
         const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?dates=${dateStr}&groups=100&limit=50`;
-        const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+        const res = await fetch(url, { signal: AbortSignal.timeout(10000), next: { revalidate: 0 } });
         if (!res.ok) continue;
         const data = await res.json();
         const dayEvents: EspnEvent[] = data?.events ?? [];
