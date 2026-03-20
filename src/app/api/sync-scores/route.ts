@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
 const supabase = createClient(
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
     for (const dateStr of datesToFetch) {
       try {
         const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?dates=${dateStr}&groups=100&limit=50&_=${Date.now()}`;
-        const res = await fetch(url, { signal: AbortSignal.timeout(10000), cache: 'no-store', next: { revalidate: 0 } });
+        const res = await fetch(url, { signal: AbortSignal.timeout(10000), cache: 'no-store' });
         if (!res.ok) continue;
         const data = await res.json();
         const dayEvents: EspnEvent[] = data?.events ?? [];
