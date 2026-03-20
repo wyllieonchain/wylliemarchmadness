@@ -78,6 +78,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Log a sample live game score to verify fresh data
+    const sampleLive = events.find(e => e.competitions[0]?.status?.type?.name === 'STATUS_IN_PROGRESS');
+    if (sampleLive) {
+      const sc = sampleLive.competitions[0];
+      console.log(`[sync-scores] Sample live: ${sc.competitors[0]?.score}-${sc.competitors[1]?.score} ${sc.status?.type?.shortDetail}`);
+    }
     console.log(`[sync-scores] Fetched ${events.length} ESPN events across ${datesToFetch.length} days`);
 
     if (events.length === 0) {
