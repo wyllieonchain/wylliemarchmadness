@@ -1,5 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import https from 'https';
+
+// Use Node.js https module to bypass Next.js fetch cache entirely
+function fetchJson(url: string): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => { reject(new Error('Timeout')); }, 10000);
+    https.get(url, (res) => {
+      let body = '';
+      res.on('data', (chunk: string) => { body += chunk; });
+      res.on('end', () => {
+        clearTimeout(timer);
+        try { resolve(JSON.parse(body)); }
+        catch { reject(new Error('Invalid JSON')); }
+      });
+    }).on('error', (err) => { clearTimeout(timer); reject(err); });
+  });
+}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,9 +70,7 @@ export async function GET(request: NextRequest) {
     for (const dateStr of datesToFetch) {
       try {
         const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?dates=${dateStr}&groups=100&limit=50`;
-        const res = await fetch(url, { signal: AbortSignal.timeout(10000), next: { revalidate: 0 } });
-        if (!res.ok) continue;
-        const data = await res.json();
+        const data = await fetchJson(url) as { events?: EspnEvent[] };
         const dayEvents: EspnEvent[] = data?.events ?? [];
         events.push(...dayEvents);
       } catch {
