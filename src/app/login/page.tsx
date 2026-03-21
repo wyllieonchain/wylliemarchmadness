@@ -19,20 +19,32 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const supabase = createClient();
 
+  const code = searchParams.get('code');
   const isReset = searchParams.get('reset') === '1';
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [view, setView] = useState<View>(isReset ? 'reset' : 'login');
+  const [view, setView] = useState<View>(isReset ? 'reset' : (code ? 'reset' : 'login'));
   const [loading, setLoading] = useState(false);
-  const [authenticating, setAuthenticating] = useState(false);
+  const [authenticating, setAuthenticating] = useState(!!code);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const isRecoveryRef = useRef(false);
+  const isRecoveryRef = useRef(!!code || isReset);
 
   useEffect(() => {
-    if (isReset) {
-      isRecoveryRef.current = true;
+    // If there's a code param (from password reset email), exchange it for a session
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        setAuthenticating(false);
+        if (error) {
+          setError('Reset link expired or already used. Try again.');
+          setView('forgot');
+          isRecoveryRef.current = false;
+        } else {
+          setView('reset');
+        }
+      });
     }
+
     if (window.location.hash.includes('access_token')) {
       setAuthenticating(true);
     }
@@ -46,7 +58,8 @@ function LoginForm() {
       }
     });
     return () => subscription.unsubscribe();
-  }, [supabase, router, isReset]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleResetPassword() {
     setLoading(true);
