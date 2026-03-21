@@ -7,6 +7,8 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
 
+  const isRecovery = requestUrl.searchParams.get("type") === "recovery";
+
   if (code) {
     const cookieStore = await cookies();
 
@@ -27,16 +29,10 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    const { data } = await supabase.auth.exchangeCodeForSession(code);
+    await supabase.auth.exchangeCodeForSession(code);
 
-    // If this is a password recovery flow, redirect to login to show reset form
-    if (data?.session?.user?.recovery_sent_at) {
-      // Check if recovery was recent (within last 10 minutes)
-      const recoverySentAt = new Date(data.session.user.recovery_sent_at).getTime();
-      const now = Date.now();
-      if (now - recoverySentAt < 10 * 60 * 1000) {
-        return NextResponse.redirect(new URL("/login?reset=1", request.url));
-      }
+    if (isRecovery) {
+      return NextResponse.redirect(new URL("/login?reset=1", request.url));
     }
   }
 

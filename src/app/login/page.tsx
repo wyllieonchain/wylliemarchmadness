@@ -19,43 +19,40 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const supabase = createClient();
 
-  const code = searchParams.get('code');
   const isReset = searchParams.get('reset') === '1';
   const urlError = searchParams.get('error_description');
+  const hasExpiredError = urlError?.includes('expired') || urlError?.includes('invalid');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [view, setView] = useState<View>(isReset ? 'reset' : (code ? 'reset' : (urlError ? 'forgot' : 'login')));
+  const [view, setView] = useState<View>(isReset ? 'reset' : (hasExpiredError ? 'forgot' : 'login'));
   const [loading, setLoading] = useState(false);
-  const [authenticating, setAuthenticating] = useState(!!code);
-  const [error, setError] = useState<string | null>(urlError ? 'Reset link expired. Request a new one below.' : null);
+  const [authenticating, setAuthenticating] = useState(false);
+  const [error, setError] = useState<string | null>(hasExpiredError ? 'Reset link expired. Request a new one below.' : null);
   const [message, setMessage] = useState<string | null>(null);
-  const isRecoveryRef = useRef(!!code || isReset);
+  const isRecoveryRef = useRef(isReset);
 
   useEffect(() => {
-    // If there's a code param (from password reset email), exchange it for a session
-    if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-        setAuthenticating(false);
-        if (error) {
-          setError('Reset link expired or already used. Try again.');
-          setView('forgot');
-          isRecoveryRef.current = false;
-        } else {
-          setView('reset');
-        }
-      });
-    }
-
-    if (window.location.hash.includes('access_token')) {
+    // Check for hash-based auth (access_token or recovery)
+    const hash = window.location.hash;
+    if (hash.includes('access_token')) {
       setAuthenticating(true);
     }
+    if (hash.includes('type=recovery')) {
+      isRecoveryRef.current = true;
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         isRecoveryRef.current = true;
         setAuthenticating(false);
         setView('reset');
-      } else if (event === 'SIGNED_IN' && !isRecoveryRef.current) {
-        router.push('/picks');
+      } else if (event === 'SIGNED_IN') {
+        if (isRecoveryRef.current) {
+          setAuthenticating(false);
+          setView('reset');
+        } else {
+          router.push('/picks');
+        }
       }
     });
     return () => subscription.unsubscribe();
@@ -79,7 +76,7 @@ function LoginForm() {
     setError(null);
     setMessage(null);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login`,
+      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
     });
     if (error) {
       setError(error.message);
