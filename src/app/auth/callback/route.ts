@@ -27,7 +27,17 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    await supabase.auth.exchangeCodeForSession(code);
+    const { data } = await supabase.auth.exchangeCodeForSession(code);
+
+    // If this is a password recovery flow, redirect to login to show reset form
+    if (data?.session?.user?.recovery_sent_at) {
+      // Check if recovery was recent (within last 10 minutes)
+      const recoverySentAt = new Date(data.session.user.recovery_sent_at).getTime();
+      const now = Date.now();
+      if (now - recoverySentAt < 10 * 60 * 1000) {
+        return NextResponse.redirect(new URL("/login?reset=1", request.url));
+      }
+    }
   }
 
   return NextResponse.redirect(new URL("/picks", request.url));

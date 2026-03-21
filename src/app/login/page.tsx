@@ -1,18 +1,28 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type View = 'login' | 'signup' | 'forgot' | 'reset';
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
+  const isReset = searchParams.get('reset') === '1';
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [view, setView] = useState<View>('login');
+  const [view, setView] = useState<View>(isReset ? 'reset' : 'login');
   const [loading, setLoading] = useState(false);
   const [authenticating, setAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +30,9 @@ export default function LoginPage() {
   const isRecoveryRef = useRef(false);
 
   useEffect(() => {
+    if (isReset) {
+      isRecoveryRef.current = true;
+    }
     if (window.location.hash.includes('access_token')) {
       setAuthenticating(true);
     }
@@ -33,7 +46,7 @@ export default function LoginPage() {
       }
     });
     return () => subscription.unsubscribe();
-  }, [supabase, router]);
+  }, [supabase, router, isReset]);
 
   async function handleResetPassword() {
     setLoading(true);
