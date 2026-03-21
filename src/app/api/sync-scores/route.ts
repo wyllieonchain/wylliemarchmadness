@@ -86,6 +86,19 @@ export async function GET(request: NextRequest) {
     }
     console.log(`[sync-scores] Fetched ${events.length} ESPN events across ${datesToFetch.length} days`);
 
+    // Deduplicate events (same game can appear in multiple date queries)
+    const seenEventIds = new Set<string>();
+    const uniqueEvents: EspnEvent[] = [];
+    for (const event of events) {
+      const eid = event.competitions[0]?.id ?? event.id;
+      if (!seenEventIds.has(eid)) {
+        seenEventIds.add(eid);
+        uniqueEvents.push(event);
+      }
+    }
+    events.length = 0;
+    events.push(...uniqueEvents);
+
     if (events.length === 0) {
       return NextResponse.json({ message: 'No games found', updated: 0 });
     }
@@ -318,6 +331,10 @@ export async function GET(request: NextRequest) {
               .single();
 
             if (nextGame) {
+              // Skip if winner is already in the next game
+              if (nextGame.team_a_id === winnerId || nextGame.team_b_id === winnerId) {
+                console.log(`[sync-scores] Winner ${winnerId} already in next game, skipping advance`);
+              } else {
               const advanceField = nextGame.team_a_id === null ? 'team_a_id' : 'team_b_id';
               const { error: advanceErr } = await supabase
                 .from('games')
@@ -330,6 +347,7 @@ export async function GET(request: NextRequest) {
                 console.log(
                   `[sync-scores] Advanced winner ${winnerId} to next game (${advanceField})`
                 );
+              }
               }
             }
           }
