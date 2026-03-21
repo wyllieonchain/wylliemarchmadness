@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [authenticating, setAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const isRecoveryRef = useRef(false);
 
   useEffect(() => {
     if (window.location.hash.includes('access_token')) {
@@ -23,14 +24,15 @@ export default function LoginPage() {
     }
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
+        isRecoveryRef.current = true;
         setAuthenticating(false);
         setIsResettingPassword(true);
-      } else if (event === 'SIGNED_IN' && !isResettingPassword) {
+      } else if (event === 'SIGNED_IN' && !isRecoveryRef.current) {
         router.push('/picks');
       }
     });
     return () => subscription.unsubscribe();
-  }, [supabase, router, isResettingPassword]);
+  }, [supabase, router]);
 
   async function handleResetPassword() {
     setLoading(true);
