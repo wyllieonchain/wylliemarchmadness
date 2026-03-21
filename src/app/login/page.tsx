@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [authenticating, setAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,12 +22,27 @@ export default function LoginPage() {
       setAuthenticating(true);
     }
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
+      if (event === 'PASSWORD_RECOVERY') {
+        setAuthenticating(false);
+        setIsResettingPassword(true);
+      } else if (event === 'SIGNED_IN' && !isResettingPassword) {
         router.push('/picks');
       }
     });
     return () => subscription.unsubscribe();
-  }, [supabase, router]);
+  }, [supabase, router, isResettingPassword]);
+
+  async function handleResetPassword() {
+    setLoading(true);
+    setError(null);
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) {
+      setError(error.message);
+    } else {
+      router.push('/picks');
+    }
+    setLoading(false);
+  }
 
   async function handleSubmit() {
     setLoading(true);
@@ -74,14 +90,44 @@ export default function LoginPage() {
         </div>
 
         <div className="glass-card p-7 space-y-5">
-          {authenticating && (
+          {isResettingPassword && (
+            <>
+              <p className="text-sm text-white text-center">Set your new password</p>
+              <div>
+                <label htmlFor="new-password" className="block text-xs font-medium text-[#9b8ab8] mb-2 uppercase tracking-wider">
+                  New Password
+                </label>
+                <input
+                  id="new-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && password) handleResetPassword(); }}
+                  placeholder="••••••••"
+                  className="w-full glass-card-sm px-4 py-3.5 text-white placeholder-[#6b5a8a] text-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/30 transition-all"
+                />
+              </div>
+              {error && (
+                <p className="text-sm text-red bg-red/10 rounded-xl px-4 py-3 border border-red/20">{error}</p>
+              )}
+              <button
+                onClick={handleResetPassword}
+                disabled={loading || !password}
+                className="w-full rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-semibold py-3.5 text-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                {loading ? "..." : "Update Password"}
+              </button>
+            </>
+          )}
+
+          {authenticating && !isResettingPassword && (
             <div className="text-center py-8">
               <div className="animate-spin w-8 h-8 border-2 border-[#7c3aed] border-t-transparent rounded-full mx-auto mb-4" />
               <p className="text-sm text-white/80">Signing you in...</p>
             </div>
           )}
 
-          {!authenticating && <>
+          {!authenticating && !isResettingPassword && <>
           <div>
             <label htmlFor="email" className="block text-xs font-medium text-[#9b8ab8] mb-2 uppercase tracking-wider">
               Email
