@@ -21,12 +21,13 @@ function LoginForm() {
 
   const code = searchParams.get('code');
   const isReset = searchParams.get('reset') === '1';
+  const urlError = searchParams.get('error_description');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [view, setView] = useState<View>(isReset ? 'reset' : (code ? 'reset' : 'login'));
+  const [view, setView] = useState<View>(isReset ? 'reset' : (code ? 'reset' : (urlError ? 'forgot' : 'login')));
   const [loading, setLoading] = useState(false);
   const [authenticating, setAuthenticating] = useState(!!code);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(urlError ? 'Reset link expired. Request a new one below.' : null);
   const [message, setMessage] = useState<string | null>(null);
   const isRecoveryRef = useRef(!!code || isReset);
 
