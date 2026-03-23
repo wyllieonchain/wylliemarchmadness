@@ -124,7 +124,6 @@ export default function SimulatePage() {
     );
   }
 
-  const allPicked = pickedCount === remainingCount;
   const progressPct = remainingCount > 0 ? (pickedCount / remainingCount) * 100 : 0;
 
   return (
@@ -192,18 +191,13 @@ export default function SimulatePage() {
 
       {/* Generate button */}
       <div className="mt-8 mb-4">
-        {allPicked ? (
-          <button
-            onClick={handleGenerate}
-            className="w-full py-4 rounded-2xl font-semibold text-base transition-all bg-[#7c3aed] hover:bg-[#6d28d9] text-white"
-          >
-            Generate Leaderboard
-          </button>
-        ) : (
-          <div className="w-full py-4 rounded-2xl font-semibold text-base text-center bg-white/[0.04] text-[#6b5a8a]">
-            {pickedCount}/{remainingCount} games picked
-          </div>
-        )}
+        <button
+          onClick={handleGenerate}
+          disabled={pickedCount === 0}
+          className="w-full py-4 rounded-2xl font-semibold text-base transition-all bg-[#7c3aed] hover:bg-[#6d28d9] text-white disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          Generate Leaderboard
+        </button>
       </div>
     </div>
   );
