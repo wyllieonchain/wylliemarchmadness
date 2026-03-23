@@ -331,23 +331,8 @@ function PicksSummary({
   savedPicks: Pick[];
   games: Game[];
 }) {
-  const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+  const [pointsView, setPointsView] = useState<'toDate' | 'rest'>('toDate');
 
-  // Find next game for a team (upcoming or live, not final)
-  const getNextGame = (teamId: string): { game: Game; opponent: Team | null } | null => {
-    const upcoming = games
-      .filter(g =>
-        g.status !== 'final' &&
-        (g.team_a_id === teamId || g.team_b_id === teamId)
-      )
-      .sort((a, b) => a.game_number - b.game_number);
-
-    if (upcoming.length === 0) return null;
-    const game = upcoming[0];
-    const opponentId = game.team_a_id === teamId ? game.team_b_id : game.team_a_id;
-    const opponent = opponentId ? teamMap.get(opponentId) ?? null : null;
-    return { game, opponent };
-  };
   const finalFourGameNumbers = [15, 30, 45, 60];
   const finalFourTeams = finalFourGameNumbers
     .map(gn => {
@@ -361,37 +346,53 @@ function PicksSummary({
 
   // Build earned points per team from savedPicks
   const earnedByTeam = new Map<string, number>();
+  let totalEarned = 0;
   savedPicks.forEach(p => {
     if (p.points_earned && p.points_earned > 0) {
       earnedByTeam.set(p.team_id, (earnedByTeam.get(p.team_id) || 0) + p.points_earned);
+      totalEarned += p.points_earned;
     }
   });
 
-  // Count how many times each team appears in picks and calculate potential points
-  const teamPickCounts = new Map<string, { team: Team; count: number; totalPts: number; earnedPts: number }>();
-  localPicks.forEach((teamId) => {
+  // Build set of game_numbers that are final (already scored)
+  const finalGameNumbers = new Set<number>();
+  games.forEach(g => {
+    if (g.status === 'final') finalGameNumbers.add(g.game_number);
+  });
+
+  // Count how many times each team appears in picks and calculate potential remaining points
+  const teamPickData = new Map<string, { team: Team; earnedPts: number; remainingPts: number; remainingWins: number }>();
+  localPicks.forEach((teamId, gameNumber) => {
     const team = teamMap.get(teamId);
     if (!team) return;
-    const existing = teamPickCounts.get(teamId);
+    const existing = teamPickData.get(teamId);
+    const isFinal = finalGameNumbers.has(gameNumber);
+
     if (existing) {
-      existing.count += 1;
-      existing.totalPts += team.seed;
+      if (!isFinal) {
+        existing.remainingPts += team.seed;
+        existing.remainingWins += 1;
+      }
     } else {
-      teamPickCounts.set(teamId, {
+      teamPickData.set(teamId, {
         team,
-        count: 1,
-        totalPts: team.seed,
         earnedPts: earnedByTeam.get(teamId) || 0,
+        remainingPts: isFinal ? 0 : team.seed,
+        remainingWins: isFinal ? 0 : 1,
       });
     }
   });
 
-  const rankedTeams = Array.from(teamPickCounts.values())
-    .sort((a, b) => {
-      // Alive teams first, eliminated last
-      if (a.team.eliminated !== b.team.eliminated) return a.team.eliminated ? 1 : -1;
-      return b.totalPts - a.totalPts;
-    });
+  // "To Date" list: teams that have earned points, sorted by earned desc
+  const toDateTeams = Array.from(teamPickData.values())
+    .filter(e => e.earnedPts > 0)
+    .sort((a, b) => b.earnedPts - a.earnedPts);
+
+  // "Rest of Tournament" list: alive teams with remaining picks, sorted by remaining potential desc
+  const totalRemaining = Array.from(teamPickData.values()).reduce((sum, e) => sum + (e.team.eliminated ? 0 : e.remainingPts), 0);
+  const restTeams = Array.from(teamPickData.values())
+    .filter(e => !e.team.eliminated && e.remainingPts > 0)
+    .sort((a, b) => b.remainingPts - a.remainingPts);
 
   return (
     <div className="space-y-8">
@@ -434,91 +435,92 @@ function PicksSummary({
         </div>
       </div>
 
-      {/* Favorite Teams - ranked by potential points */}
+      {/* Points toggle section */}
       <div className="glass-card p-6">
-        <p className="text-xs font-medium text-[#9b8ab8] uppercase tracking-wider mb-5">Your Favorite Teams</p>
-        <p className="text-xs text-[#6b5a8a] mb-4">Ranked by potential points from your picks</p>
-        <div className="space-y-1">
-          {rankedTeams.slice(0, 12).map((entry, i) => {
-            const eliminated = entry.team.eliminated;
-            const isExpanded = expandedTeam === entry.team.id;
-            const nextGame = !eliminated ? getNextGame(entry.team.id) : null;
+        {/* Toggle */}
+        <div className="flex bg-white/[0.04] rounded-xl p-1 mb-5">
+          <button
+            onClick={() => setPointsView('toDate')}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+              pointsView === 'toDate'
+                ? 'bg-[#7c3aed] text-white'
+                : 'text-[#9b8ab8] hover:text-white'
+            }`}
+          >
+            To Date
+          </button>
+          <button
+            onClick={() => setPointsView('rest')}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+              pointsView === 'rest'
+                ? 'bg-[#7c3aed] text-white'
+                : 'text-[#9b8ab8] hover:text-white'
+            }`}
+          >
+            Rest of Tournament
+          </button>
+        </div>
 
-            return (
-              <div key={entry.team.id}>
-                <button
-                  onClick={() => !eliminated && setExpandedTeam(isExpanded ? null : entry.team.id)}
-                  className={`w-full flex items-center justify-between py-2.5 px-3 rounded-lg transition-colors text-left ${
-                    eliminated ? 'opacity-50 cursor-default' : 'hover:bg-white/[0.04] cursor-pointer'
-                  } ${isExpanded ? 'bg-white/[0.04]' : ''}`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-5 shrink-0 text-center text-xs text-[#6b5a8a] font-mono">{i + 1}</span>
-                    {entry.team.logo_url && (
-                      <img src={entry.team.logo_url} alt="" className={`w-5 h-5 object-contain shrink-0 ${eliminated ? 'grayscale' : ''}`} />
-                    )}
-                    <span className={`text-sm truncate ${eliminated ? 'line-through text-[#6b5a8a]' : ''}`}>{entry.team.name}</span>
-                    <span className="text-xs text-[#6b5a8a] shrink-0">({entry.team.seed})</span>
+        {pointsView === 'toDate' ? (
+          <>
+            <div className="flex items-baseline justify-between mb-4">
+              <p className="text-xs text-[#6b5a8a]">Points earned from correct picks</p>
+              <span className="text-lg font-bold font-mono text-green">{totalEarned}</span>
+            </div>
+            {toDateTeams.length === 0 ? (
+              <p className="text-sm text-[#6b5a8a] text-center py-4">No points earned yet</p>
+            ) : (
+              <div className="space-y-1">
+                {toDateTeams.map((entry) => (
+                  <div
+                    key={entry.team.id}
+                    className="flex items-center justify-between py-2.5 px-3 rounded-lg"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      {entry.team.logo_url && (
+                        <img src={entry.team.logo_url} alt="" className={`w-5 h-5 object-contain shrink-0 ${entry.team.eliminated ? 'grayscale' : ''}`} />
+                      )}
+                      <span className={`text-sm truncate ${entry.team.eliminated ? 'text-[#6b5a8a]' : ''}`}>{entry.team.name}</span>
+                      <span className="text-xs text-[#6b5a8a] shrink-0">({entry.team.seed})</span>
+                    </div>
+                    <span className="text-sm font-bold font-mono text-green shrink-0 ml-2">{entry.earnedPts} pts</span>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 ml-2">
-                    {eliminated ? (
-                      <span className="text-sm font-bold font-mono text-green whitespace-nowrap">{entry.earnedPts} pts</span>
-                    ) : (
-                      <>
-                        <span className="text-xs text-[#6b5a8a] whitespace-nowrap">{entry.count}W</span>
-                        <span className="text-sm font-bold font-mono text-[#a78bfa] whitespace-nowrap">{entry.totalPts}</span>
-                      </>
-                    )}
-                  </div>
-                </button>
-                <div
-                  className="grid transition-all duration-300 ease-in-out"
-                  style={{ gridTemplateRows: isExpanded && nextGame ? '1fr' : '0fr' }}
-                >
-                  <div className="overflow-hidden">
-                    <div className="px-3 pb-2 pt-1">
-                      <div className="px-4 py-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-                        <p className="text-xs text-[#9b8ab8] mb-1">Next Game — {nextGame ? (ROUND_NAMES[nextGame.game.round] || `Round ${nextGame.game.round}`) : ''}</p>
-                        <div className="flex items-center gap-2">
-                          {nextGame?.opponent ? (
-                            <>
-                              <span className="text-sm text-white">vs</span>
-                              {nextGame.opponent.logo_url && (
-                                <img src={nextGame.opponent.logo_url} alt="" className="w-4 h-4 object-contain" />
-                              )}
-                              <span className="text-sm text-white">{nextGame.opponent.name}</span>
-                              <span className="text-xs text-[#6b5a8a]">({nextGame.opponent.seed})</span>
-                            </>
-                          ) : (
-                            <span className="text-sm text-[#6b5a8a] italic">vs TBD</span>
-                          )}
-                        </div>
-                        {nextGame?.game.start_time && (
-                          <p className="text-xs text-[#6b5a8a] mt-1.5">
-                            {new Date(nextGame.game.start_time).toLocaleString('en-US', {
-                              weekday: 'short',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: 'numeric',
-                              minute: '2-digit',
-                              timeZoneName: 'short',
-                            })}
-                          </p>
-                        )}
-                        {nextGame?.game.status === 'live' && (
-                          <div className="flex items-center gap-1.5 mt-1.5">
-                            <span className="w-2 h-2 rounded-full bg-green animate-pulse" />
-                            <span className="text-xs text-green font-medium">LIVE</span>
-                          </div>
-                        )}
-                      </div>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="flex items-baseline justify-between mb-4">
+              <p className="text-xs text-[#6b5a8a]">Potential points from teams still alive</p>
+              <span className="text-lg font-bold font-mono text-[#a78bfa]">{totalRemaining}</span>
+            </div>
+            {restTeams.length === 0 ? (
+              <p className="text-sm text-[#6b5a8a] text-center py-4">No remaining picks</p>
+            ) : (
+              <div className="space-y-1">
+                {restTeams.map((entry) => (
+                  <div
+                    key={entry.team.id}
+                    className="flex items-center justify-between py-2.5 px-3 rounded-lg"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      {entry.team.logo_url && (
+                        <img src={entry.team.logo_url} alt="" className="w-5 h-5 object-contain shrink-0" />
+                      )}
+                      <span className="text-sm truncate">{entry.team.name}</span>
+                      <span className="text-xs text-[#6b5a8a] shrink-0">({entry.team.seed})</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      <span className="text-xs text-[#6b5a8a] whitespace-nowrap">{entry.remainingWins}W</span>
+                      <span className="text-sm font-bold font-mono text-[#a78bfa] whitespace-nowrap">{entry.remainingPts} pts</span>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            );
-          })}
-        </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
